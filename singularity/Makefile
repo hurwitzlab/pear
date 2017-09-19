@@ -1,7 +1,7 @@
 SINGULARITY = /usr/local/bin/singularity
 IMG_NAME = pear-0.9.10.img
 DEF_NAME = image.def
-SIZE = 512
+SIZE = 1024
 
 run:
 	sudo $(SINGULARITY) run $(IMG_NAME)
