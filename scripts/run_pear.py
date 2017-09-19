@@ -7,6 +7,10 @@ import re
 import sys
 
 # --------------------------------------------------
+def stderr(msg):
+    print(msg, file=sys.stderr)
+
+# --------------------------------------------------
 def main():
     """main"""
     args = get_args()
@@ -19,31 +23,30 @@ def main():
 
     for parent, files in file_group.items():
         if not ('for' in files and 'rev' in files):
-            print('Error: "{}" missing for or rev'.format(parent),
-                  file=sys.stderr)
+            stderr('Error: "{}" missing for or rev'.format(parent))
             continue
 
         forward, reverse = files['for'], files['rev']
         out_file = os.path.join(os.path.abspath(out_dir), parent)
         print('{} -f {} -r {} -o {}'.format(pear, forward, reverse, out_file))
 
-    print('Done')
+    stderr('Done')
 
 # --------------------------------------------------
 def group_files(in_dir):
     """Group all the R1/2 files"""
 
     if not os.path.isdir(in_dir):
-        print('--dir "{}" is not a directory'.format(in_dir))
+        stderr('--dir "{}" is not a directory'.format(in_dir))
         sys.exit(1)
 
     files = os.listdir(in_dir)
     num_files = len(files)
     if num_files > 0:
-        print('Processing {} file{} in --dir "{}"'.format(
+        stderr('Processing {} file{} in --dir "{}"'.format(
             num_files, '' if num_files == 1 else 's', in_dir))
     else:
-        print('No files in --dir "{}"'.format(in_dir))
+        stderr('No files in --dir "{}"'.format(in_dir))
         sys.exit(1)
 
     file_group = {}
@@ -51,7 +54,7 @@ def group_files(in_dir):
         base, _ = os.path.splitext(file)
         match = re.match('([a-zA-Z0-9_]+)_[rR]([12])(_.*)?', base)
         if not match:
-            print('{} does not look like R1/2'.format(file))
+            stderr('{} does not look like R1/2'.format(file))
             continue
 
         parent = ''.join([match.group(1), match.group(3) or ''])
@@ -63,7 +66,7 @@ def group_files(in_dir):
         file_group[parent][direction] = os.path.join(os.path.abspath(in_dir), file)
 
     if file_group.keys() == 0:
-        print('Found no usable files in --dir "{}"'.format(dir))
+        stderr('Found no usable files in --dir "{}"'.format(dir))
         sys.exit(1)
 
     return file_group
