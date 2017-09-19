@@ -12,6 +12,7 @@ def main():
     args = get_args()
     file_group = group_files(args.dir)
     out_dir = args.outdir or os.path.join(os.getcwd(), 'pear-out')
+    pear = args.pear
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -24,7 +25,7 @@ def main():
 
         forward, reverse = files['for'], files['rev']
         out_file = os.path.join(os.path.abspath(out_dir), parent)
-        print('pear -f {} -r {} -o {}'.format(forward, reverse, out_file))
+        print('{} -f {} -r {} -o {}'.format(pear, forward, reverse, out_file))
 
     print('Done')
 
@@ -75,6 +76,8 @@ def get_args():
                         required=True)
     parser.add_argument('-o', '--outdir', type=str, help='Output directory',
                         default='')
+    parser.add_argument('-p', '--pear', type=str, help='Path to pear',
+                        default='pear')
     return parser.parse_args()
 
 # --------------------------------------------------
