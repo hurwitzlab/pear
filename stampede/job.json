@@ -1,0 +1,10 @@
+{
+  "name": "pear test-1505851419",
+  "appId": "pear-0.0.1",
+  "archive": true,
+  "inputs": {
+    "IN_DIR": "agave://data.iplantcollaborative.org/shared/imicrobe/data/jana"
+  },
+  "parameter": {
+  }
+}
