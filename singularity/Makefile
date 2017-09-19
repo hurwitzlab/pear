@@ -1,3 +1,5 @@
+.PHONY = run clean img shell scp
+
 SINGULARITY = /usr/local/bin/singularity
 IMG_NAME = pear-0.9.10.img
 DEF_NAME = image.def
