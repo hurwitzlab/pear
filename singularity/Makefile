@@ -9,7 +9,8 @@ run:
 	sudo $(SINGULARITY) run $(IMG_NAME)
 
 clean:
-	rm -f $(IMG_NAME)
+	#[[ -e $(IMG_NAME) ]] && rm -f $(IMG_NAME)
+	find . -name $(IMG_NAME) -exec rm {} \;
 
 img: clean
 	sudo $(SINGULARITY) create --size $(SIZE) $(IMG_NAME)
