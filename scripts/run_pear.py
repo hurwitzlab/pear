@@ -49,10 +49,11 @@ def group_files(in_dir):
         stderr('No files in --dir "{}"'.format(in_dir))
         sys.exit(1)
 
+    regex = '([a-zA-Z0-9_-]+)[_.](?:[rR])?([12])([_.].*)?'
     file_group = {}
     for file in files:
         base, _ = os.path.splitext(file)
-        match = re.match('([a-zA-Z0-9_]+)_[rR]([12])(_.*)?', base)
+        match = re.match(regex, base)
         if not match:
             stderr('{} does not look like R1/2'.format(file))
             continue
