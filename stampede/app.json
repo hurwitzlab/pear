@@ -1,45 +1,117 @@
-{"available":true,
- "checkpointable":false,
- "defaultMemoryPerNode":32,
- "defaultProcessorsPerNode":16,
- "defaultMaxRunTime":"12:00:00",
- "defaultNodeCount":1,
- "defaultQueue":"serial",
- "deploymentPath":"kyclark/applications/pear-0.0.1/stampede",
- "deploymentSystem":"data.iplantcollaborative.org",
- "executionSystem":"tacc-stampede-kyclark",
- "executionType":"HPC",
- "helpURI":"https://www.ncbi.nlm.nih.gov/pubmed/24142950",
- "label": "pear",
- "longDescription":"A fast and accurate Illumina Paired-End reAd mergeR",
- "modules":[],
- "name":"pear",
- "ontology":["http://sswapmeet.sswap.info/agave/apps/Application"],
- "parallelism":"SERIAL",
- "shortDescription":"pair Illumina reads",
- "tags":[""],
- "templatePath":"template.sh",
- "testPath":"test.sh",
- "version":"0.0.1",
- "inputs":[
-    {"id":"IN_DIR",
-     "value":
-        {"default":"",
-         "order":0,
-         "required":false,
-         "validator":"",
-         "visible":true},
-     "semantics":
-        {"ontology":["http://sswapmeet.sswap.info/mime/application/X-bam"],
-         "minCardinality":1,
-         "maxCardinality":-1,
-         "fileTypes":["raw-0"]},
-     "details":
-        {"description":"",
-         "label":"Directory of FASTQ(.gz) files to compare",
-         "argument":"-d ",
-         "showArgument":true}
-    }
-  ],
-  "outputs":[]
+{
+    "name": "pear",
+    "version": "0.9.10",
+    "shortDescription": "A fast and accurate Illumina Paired-End reAd mergeR",
+    "longDescription": "PEAR evaluates all possible paired-end read overlaps and without requiring the target fragment size as input. In addition, it implements a statistical test for minimizing false-positive results. \n\nThe PEAR creative commons license prohibits commercial use of the code. For testing and using PEAR on a commercial basis you need to purchase a commercial software license. Academic use is defined as the deployment of PEAR for the sole purpose of analyzing scientific data with the clear objective to (i) make all data and analyses publicly as well as freely available (ii) intend to publish the results of these data analyses in peer-reviewed scientific journals. Integration into and redistribution of PEAR in larger software pipelines requires prior written approval by the owners. All other uses of PEAR are considered as non-academic.",
+    "available": true,
+    "checkpointable": false,
+    "defaultMemoryPerNode": 32,
+    "defaultProcessorsPerNode": 16,
+    "defaultMaxRunTime": "12:00:00",
+    "defaultNodeCount": 1,
+    "defaultQueue": "serial",
+    "deploymentPath": "kyclark/applications/pear-0.0.1/stampede",
+    "deploymentSystem": "data.iplantcollaborative.org",
+    "executionSystem": "tacc-stampede-kyclark",
+    "executionType": "HPC",
+    "helpURI": "https://www.ncbi.nlm.nih.gov/pubmed/24142950",
+    "label": "pear",
+    "parallelism": "SERIAL",
+    "templatePath": "template.sh",
+    "testPath": "test.sh",
+    "modules": [],
+    "tags": [
+        ""
+    ],
+    "ontology": [
+        "http://sswapmeet.sswap.info/agave/apps/Application"
+    ],
+    "inputs": [
+        {
+            "id": "IN_DIR",
+            "value": {
+                "default": "",
+                "order": 0,
+                "validator": "",
+                "required": false,
+                "visible": true,
+                "enquote": false
+            },
+            "semantics": {
+                "ontology": [
+                    "http://sswapmeet.sswap.info/mime/application/X-bam"
+                ],
+                "minCardinality": 1,
+                "maxCardinality": -1,
+                "fileTypes": [
+                    "raw-0"
+                ]
+            },
+            "details": {
+                "description": "",
+                "label": "Directory of FASTQ(.gz) files to compare",
+                "argument": "-d ",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "FORWARD_FASTQ",
+            "value": {
+                "default": "",
+                "order": 1,
+                "validator": "",
+                "required": true,
+                "visible": true,
+                "enquote": false
+            },
+            "semantics": {
+                "ontology": [
+                    "http://sswapmeet.sswap.info/mime/application/X-bam"
+                ],
+                "minCardinality": 1,
+                "maxCardinality": -1,
+                "fileTypes": [
+                    "raw-0"
+                ]
+            },
+            "details": {
+                "description": "Forward paired-end FASTQ file",
+                "label": "Forward FASTQ",
+                "argument": "--forward-fastq",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "REVERSE_FASTQ",
+            "value": {
+                "default": "",
+                "order": 2,
+                "validator": "",
+                "required": true,
+                "visible": true,
+                "enquote": false
+            },
+            "semantics": {
+                "ontology": [
+                    "http://sswapmeet.sswap.info/mime/application/X-bam"
+                ],
+                "minCardinality": 1,
+                "maxCardinality": -1,
+                "fileTypes": [
+                    "raw-0"
+                ]
+            },
+            "details": {
+                "description": "Reverse paired-end FASTQ file",
+                "label": "Reverse FASTQ",
+                "argument": "--reverse-fastq",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        }
+    ],
+    "parameters": [],
+    "outputs": []
 }
