@@ -3,18 +3,33 @@ extern crate regex;
 
 use clap::{App, Arg};
 use regex::Regex;
-//use std::collections::HashMap;
-//use std::collections::HashSet;
+use std::collections::HashMap;
 use std::error::Error;
-use std::fs;
-use std::path::Path;
+use std::process::{Command, Stdio};
+use std::{
+    env,
+    fs::{self, DirBuilder},
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct Config {
     query: Vec<String>,
+    out_dir: PathBuf,
+    num_concurrent_jobs: Option<u32>,
+    num_halt: Option<u32>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+enum ReadDirection {
+    Forward,
+    Reverse,
 }
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
+type ReadPair = HashMap<ReadDirection, String>;
+type ReadPairLookup = HashMap<String, ReadPair>;
 
 // --------------------------------------------------
 pub fn get_args() -> MyResult<Config> {
@@ -31,10 +46,52 @@ pub fn get_args() -> MyResult<Config> {
                 .required(true)
                 .min_values(1),
         )
+        .arg(
+            Arg::with_name("out_dir")
+                .short("o")
+                .long("out_dir")
+                .value_name("DIR")
+                .help("Output directory"),
+        )
+        .arg(
+            Arg::with_name("num_concurrent_jobs")
+                .short("n")
+                .long("num_concurrent_jobs")
+                .value_name("INT")
+                .default_value("8")
+                .help("Number of concurrent jobs for parallel"),
+        )
+        .arg(
+            Arg::with_name("num_halt")
+                .short("H")
+                .long("num_halt")
+                .value_name("INT")
+                .default_value("1")
+                .help("Halt after this many failing jobs"),
+        )
         .get_matches();
+
+    let out_dir = match matches.value_of("out_dir") {
+        Some(x) => PathBuf::from(x),
+        _ => {
+            let cwd = env::current_dir()?;
+            cwd.join(PathBuf::from("uproc-out"))
+        }
+    };
+
+    let num_concurrent_jobs = matches
+        .value_of("num_concurrent_jobs")
+        .and_then(|x| x.trim().parse::<u32>().ok());
+
+    let num_halt = matches
+        .value_of("num_halt")
+        .and_then(|x| x.trim().parse::<u32>().ok());
 
     Ok(Config {
         query: matches.values_of_lossy("query").unwrap(),
+        out_dir,
+        num_concurrent_jobs,
+        num_halt,
     })
 }
 
@@ -47,15 +104,55 @@ pub fn run(config: Config) -> MyResult<()> {
         return Err(From::from(msg));
     }
 
-    println!(
-        "Will process {} file{}",
-        files.len(),
-        if files.len() == 1 { "" } else { "s" }
-    );
+    let pairs = classify(&files)?;
 
-    let _x = classify(&files);
+    println!("Found {} pair.", pairs.keys().len());
+
+    let out_dir = &config.out_dir;
+    if !out_dir.is_dir() {
+        DirBuilder::new().recursive(true).create(&out_dir)?;
+    }
+
+    let jobs = make_jobs(&config, pairs)?;
+
+    //println!("{:?}", jobs);
+
+    run_jobs(
+        &jobs,
+        "Running pear",
+        config.num_concurrent_jobs.unwrap_or(8),
+        config.num_halt.unwrap_or(1),
+    )?;
+
+    println!("Done, see output in \"{:?}\"", &config.out_dir);
 
     Ok(())
+}
+
+// --------------------------------------------------
+fn make_jobs(
+    config: &Config,
+    pairs: ReadPairLookup,
+) -> Result<Vec<String>, Box<dyn Error>> {
+    let mut jobs: Vec<String> = vec![];
+    for (i, (sample, val)) in pairs.iter().enumerate() {
+        println!("{:3}: {}", i + 1, sample);
+
+        if let (Some(fwd), Some(rev)) = (
+            val.get(&ReadDirection::Forward),
+            val.get(&ReadDirection::Reverse),
+        ) {
+            let out_file = &config.out_dir.join(sample);
+            jobs.push(format!(
+                "pear -f {} -r {} -o {}",
+                fwd,
+                rev,
+                out_file.display()
+            ));
+        }
+    }
+
+    Ok(jobs)
 }
 
 // --------------------------------------------------
@@ -84,7 +181,7 @@ fn find_files(paths: &[String]) -> Result<Vec<String>, Box<dyn Error>> {
 }
 
 // --------------------------------------------------
-fn classify(paths: &[String]) -> Result<Vec<String>, Box<dyn Error>> {
+fn classify(paths: &[String]) -> Result<ReadPairLookup, Box<dyn Error>> {
     let paths = paths.into_iter().map(Path::new);
     let mut exts: Vec<String> = paths
         .clone()
@@ -99,37 +196,66 @@ fn classify(paths: &[String]) -> Result<Vec<String>, Box<dyn Error>> {
         .into_iter()
         .map(|x| dots.replace(&x, r"\.").to_string())
         .collect();
-    println!("extensions {}", exts.join("|"));
 
-    //let pattern =
-    //    format!(r"(.+)(?:[_-][Rr]?([12])?)?\.(?:{})$", exts.join("|"));
+    let pattern = format!(r"(.+)[_-][Rr]?([12])?\.(?:{})$", exts.join("|"));
+    let re = Regex::new(&pattern).unwrap();
 
-    let single = format!(r"(.+)\.(?:{})$", exts.join("|"));
-    let paired = format!(r"(.+)[_-][Rr]?([12])?\.(?:{})$", exts.join("|"));
-    println!("single re {}", single);
-    println!("paired re {}", paired);
-
-    let single_re = Regex::new(&single).unwrap();
-    let paired_re = Regex::new(&paired).unwrap();
-
+    let mut reads: ReadPairLookup = HashMap::new();
     for path in paths.into_iter().map(Path::new) {
+        let path_str = path.to_str().expect("Convert path");
+
         if let Some(file_name) = path.file_name() {
             let basename = file_name.to_string_lossy();
-            println!("basename {}", basename);
-            if let Some(cap) = paired_re.captures(&basename) {
+            if let Some(cap) = re.captures(&basename) {
                 let sample_name = &cap[1];
-                let for_rev = &cap[2];
-                println!("sample_name {:?}", sample_name);
-                println!("for_rev {:?}", for_rev);
-            } else if let Some(cap) = single_re.captures(&basename) {
-                let sample_name = &cap[1];
-                println!("sample_name {:?}", sample_name);
+                let direction = if &cap[2] == "1" {
+                    ReadDirection::Forward
+                } else {
+                    ReadDirection::Reverse
+                };
+
+                if !reads.contains_key(sample_name) {
+                    let mut pair: ReadPair = HashMap::new();
+                    pair.insert(direction, path_str.to_string());
+                    reads.insert(sample_name.to_string(), pair);
+                } else if let Some(pair) = reads.get_mut(sample_name) {
+                    pair.insert(direction, path_str.to_string());
+                }
             }
         }
     }
 
-    let foo = vec!["foo".to_string()];
-    Ok(foo)
+    //let mut bad = vec![];
+    //for (key, val) in reads.iter() {
+    //    if !val.contains_key(&ReadDirection::Forward)
+    //        || !val.contains_key(&ReadDirection::Reverse)
+    //    {
+    //        bad.push(key.to_string());
+    //    }
+    //}
+
+    let bad: Vec<String> = reads
+        .iter()
+        .filter_map(|(k, v)| {
+            if !v.contains_key(&ReadDirection::Forward)
+                || !v.contains_key(&ReadDirection::Reverse)
+            {
+                Some(k.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for key in bad {
+        reads.remove(&key);
+    }
+
+    if reads.is_empty() {
+        Err(From::from("No pairs"))
+    } else {
+        Ok(reads)
+    }
 }
 
 // --------------------------------------------------
@@ -143,6 +269,54 @@ fn get_extension(path: &Path) -> Option<String> {
         }
     }
     None
+}
+
+// --------------------------------------------------
+fn run_jobs(
+    jobs: &[String],
+    msg: &str,
+    num_concurrent_jobs: u32,
+    num_halt: u32,
+) -> MyResult<()> {
+    let num_jobs = jobs.len();
+
+    if num_jobs > 0 {
+        println!(
+            "{} (# {} job{} @ {})",
+            msg,
+            num_jobs,
+            if num_jobs == 1 { "" } else { "s" },
+            num_concurrent_jobs,
+        );
+
+        let mut args: Vec<String> =
+            vec!["-j".to_string(), num_concurrent_jobs.to_string()];
+
+        if num_halt > 0 {
+            args.push("--halt".to_string());
+            args.push(format!("soon,fail={}", num_halt.to_string()));
+        }
+
+        let mut process = Command::new("parallel")
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .spawn()?;
+
+        {
+            let stdin = process.stdin.as_mut().expect("Failed to open stdin");
+            stdin
+                .write_all(jobs.join("\n").as_bytes())
+                .expect("Failed to write to stdin");
+        }
+
+        let result = process.wait()?;
+        if !result.success() {
+            return Err(From::from("Failed to run jobs in parallel"));
+        }
+    }
+
+    Ok(())
 }
 
 // --------------------------------------------------
@@ -175,5 +349,52 @@ mod tests {
         assert_eq!(get_extension(Path::new("foo.fq")), Some("fq".to_string()));
 
         assert_eq!(get_extension(Path::new("foo")), None);
+    }
+
+    #[test]
+    fn test_classify() {
+        assert!(classify(&["ERR1711926.fastq.gz".to_string()]).is_err());
+
+        let res = classify(&[
+            "/foo/bar/ERR1711926_1.fastq.gz".to_string(),
+            "/foo/bar/ERR1711926_2.fastq.gz".to_string(),
+            "/foo/bar/ERR1711927-R1.fastq.gz".to_string(),
+            "/foo/bar/ERR1711927_R2.fastq.gz".to_string(),
+            "/foo/bar/ERR1711928.fastq.gz".to_string(),
+            "/foo/bar/ERR1711929_1.fastq.gz".to_string(),
+        ]);
+        assert!(res.is_ok());
+
+        if let Ok(res) = res {
+            assert!(res.len() == 2);
+            assert!(res.contains_key("ERR1711926"));
+            assert!(res.contains_key("ERR1711927"));
+            assert!(!res.contains_key("ERR1711928"));
+            assert!(!res.contains_key("ERR1711929"));
+
+            if let Some(val) = res.get("ERR1711926") {
+                assert!(val.contains_key(&ReadDirection::Forward));
+                assert!(val.contains_key(&ReadDirection::Reverse));
+
+                if let Some(fwd) = val.get(&ReadDirection::Forward) {
+                    assert_eq!(fwd, &"/foo/bar/ERR1711926_1.fastq.gz");
+                }
+                if let Some(rev) = val.get(&ReadDirection::Reverse) {
+                    assert_eq!(rev, &"/foo/bar/ERR1711926_2.fastq.gz");
+                }
+            }
+
+            if let Some(val) = res.get("ERR1711927") {
+                assert!(val.contains_key(&ReadDirection::Forward));
+                assert!(val.contains_key(&ReadDirection::Reverse));
+
+                if let Some(fwd) = val.get(&ReadDirection::Forward) {
+                    assert_eq!(fwd, &"/foo/bar/ERR1711927-R1.fastq.gz");
+                }
+                if let Some(rev) = val.get(&ReadDirection::Reverse) {
+                    assert_eq!(rev, &"/foo/bar/ERR1711927_R2.fastq.gz");
+                }
+            }
+        }
     }
 }
