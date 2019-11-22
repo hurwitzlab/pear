@@ -319,11 +319,6 @@ pub fn run(config: Config) -> MyResult<()> {
 
     println!("Processing {} pair.", pairs.keys().len());
 
-    let out_dir = &config.out_dir;
-    if !out_dir.is_dir() {
-        DirBuilder::new().recursive(true).create(&out_dir)?;
-    }
-
     let jobs = make_jobs(&config, pairs)?;
 
     run_jobs(
@@ -428,6 +423,11 @@ fn make_jobs(
             val.get(&ReadDirection::Forward),
             val.get(&ReadDirection::Reverse),
         ) {
+            let out_dir = &config.out_dir.join(sample);
+            if !out_dir.is_dir() {
+                DirBuilder::new().recursive(true).create(&out_dir)?;
+            }
+
             let out_file = &config.out_dir.join(sample);
             jobs.push(format!(
                 "pear -f {} -r {} -o {} {}",
