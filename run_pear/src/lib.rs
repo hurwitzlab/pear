@@ -427,8 +427,8 @@ fn make_jobs(
             if !out_dir.is_dir() {
                 DirBuilder::new().recursive(true).create(&out_dir)?;
             }
+            let out_file = out_dir.join(sample);
 
-            let out_file = &config.out_dir.join(sample);
             jobs.push(format!(
                 "pear -f {} -r {} -o {} {}",
                 fwd,
