@@ -207,7 +207,7 @@ pub fn get_args() -> MyResult<Config> {
         Some(x) => PathBuf::from(x),
         _ => {
             let cwd = env::current_dir()?;
-            cwd.join(PathBuf::from("uproc-out"))
+            cwd.join(PathBuf::from("pear-out"))
         }
     };
 
@@ -317,7 +317,7 @@ pub fn run(config: Config) -> MyResult<()> {
 
     let pairs = classify(&files)?;
 
-    println!("Found {} pair.", pairs.keys().len());
+    println!("Processing {} pair.", pairs.keys().len());
 
     let out_dir = &config.out_dir;
     if !out_dir.is_dir() {
@@ -326,8 +326,6 @@ pub fn run(config: Config) -> MyResult<()> {
 
     let jobs = make_jobs(&config, pairs)?;
 
-    //println!("{:?}", jobs);
-
     run_jobs(
         &jobs,
         "Running pear",
@@ -335,7 +333,7 @@ pub fn run(config: Config) -> MyResult<()> {
         config.num_halt.unwrap_or(1),
     )?;
 
-    println!("Done, see output in \"{:?}\"", &config.out_dir);
+    println!("Done, see output in \"{}\"", &config.out_dir.display());
 
     Ok(())
 }
