@@ -1,6 +1,6 @@
 {
     "name": "pear",
-    "version": "0.9.10",
+    "version": "0.9.11",
     "shortDescription": "A fast and accurate Illumina Paired-End reAd mergeR",
     "longDescription": "PEAR evaluates all possible paired-end read overlaps and without requiring the target fragment size as input. In addition, it implements a statistical test for minimizing false-positive results. \n\nThe PEAR creative commons license prohibits commercial use of the code. For testing and using PEAR on a commercial basis you need to purchase a commercial software license. Academic use is defined as the deployment of PEAR for the sole purpose of analyzing scientific data with the clear objective to (i) make all data and analyses publicly as well as freely available (ii) intend to publish the results of these data analyses in peer-reviewed scientific journals. Integration into and redistribution of PEAR in larger software pipelines requires prior written approval by the owners. All other uses of PEAR are considered as non-academic.",
     "available": true,
@@ -10,7 +10,7 @@
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
     "defaultQueue": "serial",
-    "deploymentPath": "kyclark/applications/pear-0.0.1/stampede",
+    "deploymentPath": "kyclark/applications/pear-0.9.11/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
     "executionSystem": "tacc-stampede-kyclark",
     "executionType": "HPC",
@@ -28,12 +28,12 @@
     ],
     "inputs": [
         {
-            "id": "IN_DIR",
+            "id": "QUERY",
             "value": {
                 "default": "",
                 "order": 0,
                 "validator": "",
-                "required": false,
+                "required": true,
                 "visible": true,
                 "enquote": false
             },
@@ -49,69 +49,332 @@
             },
             "details": {
                 "description": "",
-                "label": "Directory of FASTQ(.gz) files to compare",
-                "argument": "-d ",
-                "repeatArgument": false,
-                "showArgument": true
-            }
-        },
-        {
-            "id": "FORWARD_FASTQ",
-            "value": {
-                "default": "",
-                "order": 1,
-                "validator": "",
-                "required": true,
-                "visible": true,
-                "enquote": false
-            },
-            "semantics": {
-                "ontology": [
-                    "http://sswapmeet.sswap.info/mime/application/X-bam"
-                ],
-                "minCardinality": 1,
-                "maxCardinality": -1,
-                "fileTypes": [
-                    "raw-0"
-                ]
-            },
-            "details": {
-                "description": "Forward paired-end FASTQ file",
-                "label": "Forward FASTQ",
-                "argument": "--forward-fastq",
-                "repeatArgument": false,
-                "showArgument": true
-            }
-        },
-        {
-            "id": "REVERSE_FASTQ",
-            "value": {
-                "default": "",
-                "order": 2,
-                "validator": "",
-                "required": true,
-                "visible": true,
-                "enquote": false
-            },
-            "semantics": {
-                "ontology": [
-                    "http://sswapmeet.sswap.info/mime/application/X-bam"
-                ],
-                "minCardinality": 1,
-                "maxCardinality": -1,
-                "fileTypes": [
-                    "raw-0"
-                ]
-            },
-            "details": {
-                "description": "Reverse paired-end FASTQ file",
-                "label": "Reverse FASTQ",
-                "argument": "--reverse-fastq",
+                "label": "Directories/files of FASTQ(.gz) files to compare",
+                "argument": "-Q ",
                 "repeatArgument": false,
                 "showArgument": true
             }
         }
     ],
-    "parameters": [],
+    "parameters": [
+        {
+            "id": "CAP",
+            "value": {
+                "default": 40,
+                "type": "number",
+                "order": 1,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify  the upper bound for the resulting quality score. If set to zero, capping is disabled.",
+                "label": "Cap",
+                "argument": "--cap",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "MAX_ASSEMBLY_LENGTH",
+            "value": {
+                "default": 0,
+                "type": "number",
+                "order": 2,
+                "required": true,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the maximum possible length of the assembled sequences. Setting this value to 0 disables the restriction and assembled sequences may be arbitrary long.",
+                "label": "Max. assembly length",
+                "argument": "--max_assembly_length",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "MIN_ASSEMBLY_LENGTH",
+            "value": {
+                "default": 50,
+                "type": "number",
+                "order": 3,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the minimum possible length of the assembled sequences. Setting this value to 0 disables the restriction and assembled sequences may be arbitrary short.",
+                "label": "Min. assembly length",
+                "argument": "--min_assembly_length",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "MAX_UNCALLED_BASE",
+            "value": {
+                "default": 0,
+                "type": "number",
+                "order": 4,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the maximal proportion of uncalled bases in a read. Setting this value to 0 will cause PEAR to discard all reads containing uncalled bases. The other extreme setting is 1 which causes PEAR to process all reads independent on the number of uncalled bases.",
+                "label": "Max. uncalled base",
+                "argument": "--max_uncalled_base",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "MIN_OVERLAP",
+            "value": {
+                "default": 10,
+                "type": "number",
+                "order": 5,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the minimum overlap size. The minimum overlap may be set to 1 when the statistical test is used. However, further restricting the minimum overlap size to a proper value may reduce false-positive assembles.",
+                "label": "Min. overlap",
+                "argument": "--min_overlap",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "MIN_TRIM_LENGTH",
+            "value": {
+                "default": 0,
+                "type": "number",
+                "order": 6,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the minimum length of reads after trimming the low quality part.",
+                "label": "Min. trim length",
+                "argument": "--min_trim_length",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "P_VALUE",
+            "value": {
+                "default": "",
+                "type": "enumeration",
+                "order": 7,
+                "required": true,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "0.0001": "0.0001"
+                    },
+                    {
+                        "0.001": "0.001"
+                    },
+                    {
+                        "0.01": "0.01"
+                    },
+                    {
+                        "0.05": "0.05"
+                    },
+                    {
+                        "1.0": "1.0"
+                    }
+                ]
+            },
+            "details": {
+                "description": "Specify a p-value for the statistical test. If the computed p-value of a possible assembly exceeds the specified p-value then paired-end read will not be assembled. Valid options are: 0.0001, 0.001, 0.01, 0.05 and 1.0. Setting 1.0 disables the test.",
+                "label": "P value",
+                "argument": "--p_value",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "PHRED_BASE",
+            "value": {
+                "default": 33,
+                "type": "number",
+                "order": 8,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Base PHRED quality score.",
+                "label": "Phred base",
+                "argument": "--phred_base",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "QUALITY_THRESHOLD",
+            "value": {
+                "default": 0,
+                "type": "number",
+                "order": 9,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Specify the quality score threshold for trimming the low quality part of a read. If the quality scores of two consecutive bases are strictly less than the specified threshold, the rest of the read will be trimmed.",
+                "label": "Quality threshold",
+                "argument": "--quality_threshold",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "SCORE_METHOD",
+            "value": {
+                "default": "2",
+                "type": "enumeration",
+                "order": 10,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "OES with +1 for match and -1 for mismatch": "1"
+                    },
+                    {
+                        "Assembly score (AS). Use +1 for match and -1 for mismatch multiplied by base quality scores.": "2"
+                    },
+                    {
+                        "Ignore quality scores and use +1 for a match and -1 for a mismatch.": "3"
+                    }
+                ]
+            },
+            "details": {
+                "description": "Specify the scoring method.",
+                "label": "Score method",
+                "argument": "--score_method",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "TEST_METHOD",
+            "value": {
+                "default": "1",
+                "type": "enumeration",
+                "order": 11,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "enumValues": [
+                    {
+                        "Given the minimum allowed overlap, test using the highest OES.": "1"
+                    },
+                    {
+                        "Use the acceptance probability (m.a.p).": "2"
+                    }
+                ]
+            },
+            "details": {
+                "description": "Specify  the  type  of  statistical  test.",
+                "label": "Test method",
+                "argument": "--test_method",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "EMPERICAL_FREQS",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 12,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Disable empirical base frequencies.",
+                "label": "Emperical freqs",
+                "argument": "--empirical_freqs",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "KEEP_ORIGINAL",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 13,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Do not reverse and complement the reverse reads when writing the unassembled and discarded reads output.",
+                "label": "Keep original",
+                "argument": "--keep_original",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "NBASE",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 14,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "When  merging  a  base-pair  that  consists of two non-equal bases  out  of which none is degenerate, set the merged base to N and use the highest quality score of the two bases.",
+                "label": "Nbase",
+                "argument": "--nbase",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "STITCH",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 15,
+                "required": false,
+                "visible": true,
+                "enquote": false,
+                "validator": ""
+            },
+            "details": {
+                "description": "Concatenate reads by reversing/complementing reverse read.",
+                "label": "Stitch",
+                "argument": "--stitch",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        }
+    ],
     "outputs": []
 }
