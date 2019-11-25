@@ -1,6 +1,6 @@
 {
     "name": "pear",
-    "version": "0.9.10",
+    "version": "0.9.11",
     "shortDescription": "A fast and accurate Illumina Paired-End reAd mergeR",
     "longDescription": "PEAR evaluates all possible paired-end read overlaps and without requiring the target fragment size as input. In addition, it implements a statistical test for minimizing false-positive results. \n\nThe PEAR creative commons license prohibits commercial use of the code. For testing and using PEAR on a commercial basis you need to purchase a commercial software license. Academic use is defined as the deployment of PEAR for the sole purpose of analyzing scientific data with the clear objective to (i) make all data and analyses publicly as well as freely available (ii) intend to publish the results of these data analyses in peer-reviewed scientific journals. Integration into and redistribution of PEAR in larger software pipelines requires prior written approval by the owners. All other uses of PEAR are considered as non-academic.",
     "available": true,
@@ -10,7 +10,7 @@
     "defaultMaxRunTime": "12:00:00",
     "defaultNodeCount": 1,
     "defaultQueue": "serial",
-    "deploymentPath": "kyclark/applications/pear-0.0.1/stampede",
+    "deploymentPath": "kyclark/applications/pear-0.9.11/stampede",
     "deploymentSystem": "data.iplantcollaborative.org",
     "executionSystem": "tacc-stampede-kyclark",
     "executionType": "HPC",
@@ -28,7 +28,7 @@
     ],
     "inputs": [
         {
-            "id": "IN_DIR",
+            "id": "QUERY",
             "value": {
                 "default": "",
                 "order": 0,
@@ -49,8 +49,8 @@
             },
             "details": {
                 "description": "",
-                "label": "Directory of FASTQ(.gz) files to compare",
-                "argument": "-d ",
+                "label": "Directory/list of FASTQ(.gz) files",
+                "argument": "-Q ",
                 "repeatArgument": false,
                 "showArgument": true
             }
