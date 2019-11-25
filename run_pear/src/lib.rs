@@ -442,7 +442,6 @@ fn make_jobs(
                 DirBuilder::new().recursive(true).create(&out_dir)?;
             }
 
-            let out_file = &config.out_dir.join(sample);
             let existing: Vec<String> =
                 glob(&format!("{}/*.assembled.*", &out_dir.display()))?
                     .filter_map(Result::ok)
@@ -454,6 +453,7 @@ fn make_jobs(
                 continue;
             }
 
+            let out_file = out_dir.join(sample);
             jobs.push(format!(
                 "pear -f {} -r {} -o {} {}",
                 fwd,
