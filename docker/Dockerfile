@@ -4,7 +4,7 @@ RUN cd pear/run_pear && cargo build --release && cp target/release/run_pear /usr
 
 FROM ubuntu:latest
 RUN apt-get update -y
-RUN apt-get install -y parallel libgomp1
+RUN apt-get install -y parallel libgomp1 locales && locale-gen en_US.UTF-8
 RUN mkdir .parallel && touch .parallel/will-cite
 COPY --from=rust /usr/local/bin /usr/local/bin
 COPY --from=rust /usr/local/lib /usr/local/lib

@@ -1,7 +1,7 @@
 TAG = hurwitzlab/pear:0.9.11
 
 img:
-	docker build --tag=$(TAG) .
+	docker build --no-cache --tag=$(TAG) .
 
 run:
 	docker run --rm $(TAG)

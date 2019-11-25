@@ -1,7 +1,9 @@
 extern crate clap;
+extern crate glob;
 extern crate regex;
 
 use clap::{App, Arg};
+use glob::glob;
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
@@ -36,6 +38,7 @@ pub struct Config {
     stitch: Option<bool>,
     num_concurrent_jobs: Option<u32>,
     num_halt: Option<u32>,
+    resume: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -201,6 +204,12 @@ pub fn get_args() -> MyResult<Config> {
                 .default_value("1")
                 .help("Halt after this many failing jobs"),
         )
+        .arg(
+            Arg::with_name("resume")
+                .short("R")
+                .long("resume")
+                .help("Resume batch, do not overwrite existing"),
+        )
         .get_matches();
 
     let out_dir = match matches.value_of("out_dir") {
@@ -273,6 +282,8 @@ pub fn get_args() -> MyResult<Config> {
 
     let stitch = Some(matches.is_present("stitch"));
 
+    let resume = Some(matches.is_present("resume"));
+
     let num_concurrent_jobs = matches
         .value_of("num_concurrent_jobs")
         .and_then(|x| x.trim().parse::<u32>().ok());
@@ -303,6 +314,7 @@ pub fn get_args() -> MyResult<Config> {
         nbase,
         keep_original,
         stitch,
+        resume,
     })
 }
 
@@ -415,6 +427,8 @@ fn make_jobs(
         }
     }
 
+    let resume = config.resume.unwrap_or(false);
+
     let mut jobs: Vec<String> = vec![];
     for (i, (sample, val)) in pairs.iter().enumerate() {
         println!("{:3}: {}", i + 1, sample);
@@ -428,7 +442,18 @@ fn make_jobs(
                 DirBuilder::new().recursive(true).create(&out_dir)?;
             }
 
-            let out_file = &config.out_dir.join(sample);
+            let existing: Vec<String> =
+                glob(&format!("{}/*.assembled.*", &out_dir.display()))?
+                    .filter_map(Result::ok)
+                    .map(|e| e.display().to_string())
+                    .collect();
+
+            if resume && !existing.is_empty() {
+                eprintln!("Skipping {}", sample);
+                continue;
+            }
+
+            let out_file = out_dir.join(sample);
             jobs.push(format!(
                 "pear -f {} -r {} -o {} {}",
                 fwd,
